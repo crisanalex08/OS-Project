@@ -18,87 +18,166 @@ void printRegularFileMenu()
     printf("-a : Access rights\n");
     printf("-l : Symbolic Link | give link name \n");
     printf("-e : Exit\n");
+    printf("Enter your choice: ");
 }
 
 void printSymbolicLinkMenu()
 {
+    printf("Symbolic Link Menu\n");
     printf("-n : Link name\n");
     printf("-l : Delete link\n");
     printf("-d : Size of the link\n");
     printf("-a : Access rights\n");
     printf("-e : Exit\n");
+    printf("Enter your choice: ");
 }
 
 void printDirMenu(){
+    printf("Symbolic Link Menu\n");
     printf("-n : Dir name\n");
     printf("-c : Total number of files with \".c\" extension \n");
     printf("-d : Size of the dir\n");
     printf("-a : Access rights\n");
     printf("-e : Exit\n");
+    printf("Enter your choice: ");
 }
 
-int checkRegularChoice(char *choice){
-    for(int i = 0; i < strlen(choice)){
-        if()
+void printError(char* error){
+    printf("\033[0;31m");
+    printf("%s", error);
+    printf("\033[0;37m"); 
+     
+}
 
+int validRegularChoice(char *choice){
+    for(int i = 1; i < strlen(choice); i++){
+        switch(choice[i]){
+            case 'n':
+                break;
+            case 'd':
+                break;
+            case 'h':
+                break;
+            case 'm':
+                break;
+            case 'a':
+                break;
+            case 'l':
+                break;
+            case 'e':
+                break;
+            default:
+                return 0;
+                break;
+
+        }
+        return 1;
+    }
+}
+
+int validLinkChoice(char *choice){
+    for(int i = 1; i < strlen(choice); i++){
+        switch(choice[i]){
+            case 'n':
+                break;
+            case 'l':
+                break;
+            case 'd':
+                break;
+            case 'a':
+                break;
+            case 'e':
+                break;
+            default:
+                return 0;
+                break;
+
+        }
+        return 1;
     }
 }
 
 int regFileMenu(char *fileName){
 
-    int badChoice = 1;
     char choice[10];
-
-    while (badChoice)
-    {
-            printRegularFileMenu();
-            printf("Enter your choice: ");
-            scanf("%s", &choice);
-
-            for(int i = 1; i < strlen(choice); i++){
-                switch (choice[i])
-                {
-                    case 'n':
-                        printf("File Name: %s\n", fileName);
-                        badChoice = 0;
-                        break;
-                    case 'd':
-                        printf("File Size: %ld\n", sb.st_size);
-                        badChoice = 0;
-                        break;
-                    case 'h':
-                        printf("Number of Hard Links: %ld\n", sb.st_nlink);
-                        badChoice = 0;
-                        break;
-                    case 'm':
-                        printf("Time of last modification: %s\n", ctime(&(sb.st_mtime)));
-                        badChoice = 0;
-                        break;
-                    case 'a':
-                        printf("Acces rights: %o\n", sb.st_mode);//
-                        badChoice = 0;
-                        break;
-                    case 'l':
-                        char slinkName[100];
-                        printf("Enter the symbolic link name: ");
-                        scanf("%s", &slinkName);
-                        if (symlink(fileName, slinkName) == -1) {
-                            perror("symlink");
-                            exit(EXIT_FAILURE);
-                        }
-                        break;
-                    case 'e':
-                        printf("Exiting...\n");
-                        exit(EXIT_SUCCESS);
-                        break;
-                    default:
-                        printf("Invalid choice: \"%c\"\n", choice[i]);
-                        badChoice = 1;
-                        break;
+    printRegularFileMenu();
+    scanf("%s", &choice);
+    if(validRegularChoice(choice) == 0){
+        printf("Invalid choice, try again\n");
+        return -1;
+    }
+    for(int i = 1; i < strlen(choice); i++){
+        switch (choice[i])
+        {
+            case 'n':
+                printf("File Name: %s\n", fileName);
+                break;
+            case 'd':
+                printf("File Size: %ld\n", sb.st_size);
+                break;
+            case 'h':
+                printf("Number of Hard Links: %ld\n", sb.st_nlink);
+                break;
+            case 'm':
+                printf("Time of last modification: %s\n", ctime(&(sb.st_mtime)));
+                break;
+            case 'a':
+                printf("Acces rights: %o\n", sb.st_mode);//
+                break;
+            case 'l':
+                char slinkName[100];
+                printf("Enter the symbolic link name: ");
+                scanf("%s", &slinkName);
+                if (symlink(fileName, slinkName) == -1) {
+                    perror("symlink");
+                    exit(EXIT_FAILURE);
                 }
+                break;
+            case 'e':
+                printf("Exiting...\n");
+                exit(EXIT_SUCCESS);
+                break;
         }
     }
     return 0;
+}
+
+int linkMenu(char *linkName){
+    
+    char choice[10];
+    printSymbolicLinkMenu();
+    scanf("%s", &choice);
+    if(validLinkChoice(choice) == 0){
+        printf("Invalid choice, try again\n");
+        return -1;
+    }
+    for(int i = 1; i < strlen(choice); i++){
+        switch (choice[i])
+        {
+            case 'n':
+                printf("Link Name: %s\n", linkName);
+                break;
+            case 'd':
+                printf("Link Size: %ld\n", sb.st_size);
+                break;
+            case 'l':
+                printf("Deleting link\n");
+                if (unlink(linkName) == -1) {
+                    perror("unlink");
+                    exit(EXIT_FAILURE);
+                }
+                printf("Link deleted\n");
+                break;
+            case 'a':
+                printf("Acces rights: %o\n", sb.st_mode);//
+                break;
+            case 'e':
+                printf("Exiting...\n");
+                exit(EXIT_SUCCESS);
+                break;
+        }
+    }
+
 }
 
 int main(int arg, char* argv[])
@@ -106,6 +185,7 @@ int main(int arg, char* argv[])
     int c;
     int regFile = 0;
     int dir = 0;
+    int link = 0;
     int badChoice = 0;
     int regMenu = 0;
     char choice[10];
@@ -126,8 +206,7 @@ int main(int arg, char* argv[])
     }
     else if(S_ISLNK(sb.st_mode))
     {
-        printf("Symbolic Link Menu\n");
-        printSymbolicLinkMenu();
+        link = 1;
     }
     else
     {
@@ -136,45 +215,20 @@ int main(int arg, char* argv[])
     }
     
     if(regFile){
-       regMenu = regFileMenu(argv[1]);
+        regMenu = regFileMenu(argv[1]);
+        while(regMenu == -1){
+            system("clear");
+            printError("==========================\nInvalid choice, try again.\n==========================\n");
+            regMenu = regFileMenu(argv[1]);
+        }
     }else{
         if(dir == 0){
-             while (strcmp(choice, "-e") || strcmp(choice, "e") || badChoice)
-            {
-                printf("Enter your choice: ");
-                scanf("%s", &choice);
-
-                for(int i = 1; i < strlen(choice); i++){
-                    switch (choice[i])
-                    {
-                        case 'n':
-                            printf("Link Name: %s\n", argv[1]);
-                            break;
-                        case 'd':
-                            printf("Link Size: %ld\n", sb.st_size);
-                            break;
-                        case 'l':
-                            printf("Deleting link\n");
-                            if (unlink(argv[1]) == -1) {
-                                perror("unlink");
-                                exit(EXIT_FAILURE);
-                            }
-                            printf("Link deleted\n");
-                            break;
-                        case 'a':
-                            printf("Acces rights: %o\n", sb.st_mode);//
-                            break;
-                        case 'e':
-                            printf("Exiting...\n");
-                            exit(EXIT_SUCCESS);
-                            break;
-                        default:
-                            printf("Invalid choice: \"%c\"\n", choice[i]);
-                            badChoice = 1;
-                            break;
-                    }
-                }
-            }
+            link = linkMenu(argv[1]);
+            while(link == -1){
+            system("clear");
+            printError("==========================\nInvalid choice, try again.\n==========================\n");
+            link = linkMenu(argv[1]);
+        }
         }else{
              while (strcmp(choice, "-e") || strcmp(choice, "e") || badChoice)
             {
