@@ -5,11 +5,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <dirent.h>
 
 struct stat sb;
 
-void printRegularFileMenu()
-{
+void printRegularFileMenu(){
     printf("Regular file menu\n");
     printf("-n : File Name\n");
     printf("-d : File Size\n");
@@ -21,8 +21,7 @@ void printRegularFileMenu()
     printf("Enter your choice: ");
 }
 
-void printSymbolicLinkMenu()
-{
+void printSymbolicLinkMenu(){
     printf("Symbolic Link Menu\n");
     printf("-n : Link name\n");
     printf("-l : Delete link\n");
@@ -33,7 +32,7 @@ void printSymbolicLinkMenu()
 }
 
 void printDirMenu(){
-    printf("Symbolic Link Menu\n");
+    printf("Directory Menu\n");
     printf("-n : Dir name\n");
     printf("-c : Total number of files with \".c\" extension \n");
     printf("-d : Size of the dir\n");
@@ -47,6 +46,21 @@ void printError(char* error){
     printf("%s", error);
     printf("\033[0;37m"); 
      
+}
+
+void accesRights(struct stat sb){
+    printf("Access rights: ");
+    printf( (S_ISDIR(sb.st_mode)) ? "d" : "-");
+    printf( (sb.st_mode & S_IRUSR) ? "r" : "-");
+    printf( (sb.st_mode & S_IWUSR) ? "w" : "-");
+    printf( (sb.st_mode & S_IXUSR) ? "x" : "-");
+    printf( (sb.st_mode & S_IRGRP) ? "r" : "-");
+    printf( (sb.st_mode & S_IWGRP) ? "w" : "-");
+    printf( (sb.st_mode & S_IXGRP) ? "x" : "-");
+    printf( (sb.st_mode & S_IROTH) ? "r" : "-");
+    printf( (sb.st_mode & S_IWOTH) ? "w" : "-");
+    printf( (sb.st_mode & S_IXOTH) ? "x" : "-");
+    printf("\n");
 }
 
 int validRegularChoice(char *choice){
@@ -68,8 +82,6 @@ int validRegularChoice(char *choice){
                 break;
             default:
                 return 0;
-                break;
-
         }
         return 1;
     }
@@ -92,6 +104,26 @@ int validLinkChoice(char *choice){
                 return 0;
                 break;
 
+        }
+        return 1;
+    }
+}
+
+int validDirectoryChoice(char  *choice){
+    for(int i = 1;i<strlen(choice);i++){
+        switch(choice[i]){
+            case 'n':
+                break;
+            case 'd':
+                break;
+            case 'a':
+                break;
+            case 'c':
+                break;
+            case 'e':
+                break;
+            default:
+                return 0;
         }
         return 1;
     }
@@ -122,7 +154,7 @@ int regFileMenu(char *fileName){
                 printf("Time of last modification: %s\n", ctime(&(sb.st_mtime)));
                 break;
             case 'a':
-                printf("Acces rights: %o\n", sb.st_mode);//
+                accesRights(sb);
                 break;
             case 'l':
                 char slinkName[100];
@@ -169,7 +201,7 @@ int linkMenu(char *linkName){
                 printf("Link deleted\n");
                 break;
             case 'a':
-                printf("Acces rights: %o\n", sb.st_mode);//
+                accesRights(sb);
                 break;
             case 'e':
                 printf("Exiting...\n");
@@ -180,6 +212,84 @@ int linkMenu(char *linkName){
 
 }
 
+int countCFiles(char *dirName){
+    DIR *dir;
+    struct dirent *ent;
+    char path[4096];
+    strcpy(path, dirName);
+    strcat(path, "/");
+    int count = 0;
+    if ((dir = opendir (dirName)) != NULL) {
+        while ((ent = readdir (dir)) != NULL) {
+            if(strlen(ent->d_name) > 2){
+                strcat(path, ent->d_name);
+                if(getFileType(path) == 1){
+                    char *ext = strrchr(ent->d_name, '.');
+                    if(ext != NULL && strcmp(ext, ".c") == 0){
+                        count++;
+                    }
+                }
+            }
+        }
+        closedir (dir);
+    } else {
+        perror ("");
+        return EXIT_FAILURE;
+    }
+    return count;
+}
+
+int getFileType(char *fileName){
+    if (lstat(fileName, &sb) == -1) {
+        perror("lstat");
+        exit(EXIT_FAILURE);
+    }
+    if(S_ISREG(sb.st_mode)){
+        return 1;
+    }
+    else if(S_ISLNK(sb.st_mode)){
+        return 2;
+    }
+    else if(S_ISDIR(sb.st_mode)){
+        return 3;
+    }
+    else{
+        return 0;
+    }
+}
+
+int dirMenu(char *dirName){
+
+    char choice[10];
+    printDirMenu();
+    scanf("%s", &choice);
+    if(validDirectoryChoice(choice) == 0){
+        return -1;
+    }
+    for(int i = 1; i < strlen(choice); i++){
+        switch (choice[i])
+        {
+            case 'n':
+                printf("Directory Name: %s\n", dirName);
+                break;
+            case 'd':
+                printf("Directory Size: %ld\n", sb.st_size);
+                break;
+            case 'a':
+                accesRights(sb);
+                break;
+            case 'c':
+                printf("Number of files with \".c\" extension: %d\n", countCFiles(dirName));
+                break;
+            case 'e':
+                printf("Exiting...\n");
+                exit(EXIT_SUCCESS);
+                break;
+        }
+    }
+    return 0;
+
+}
 int main(int arg, char* argv[])
 {
     int c;
@@ -194,79 +304,38 @@ int main(int arg, char* argv[])
         printf("Usage:<filename> path1, path2, ...");
         exit(EXIT_FAILURE);
     }
-
-    if (lstat(argv[1], &sb) == -1) {
-        perror("lstat");
-        exit(EXIT_FAILURE);
-    }
-
-    if(S_ISREG(sb.st_mode))
-    {
-        regFile = 1;
-    }
-    else if(S_ISLNK(sb.st_mode))
-    {
-        link = 1;
-    }
-    else
-    {
-        printf("Directory Menu\n");
-        printDirMenu();
-    }
     
-    if(regFile){
+    if(getFileType(argv[1]) == 1){
         regMenu = regFileMenu(argv[1]);
         while(regMenu == -1){
             system("clear");
             printError("==========================\nInvalid choice, try again.\n==========================\n");
             regMenu = regFileMenu(argv[1]);
         }
-    }else{
-        if(dir == 0){
-            link = linkMenu(argv[1]);
-            while(link == -1){
+    }
+
+    if(getFileType(argv[1]) == 2){
+        link = linkMenu(argv[1]);
+        while(link == -1){
             system("clear");
             printError("==========================\nInvalid choice, try again.\n==========================\n");
             link = linkMenu(argv[1]);
         }
-        }else{
-             while (strcmp(choice, "-e") || strcmp(choice, "e") || badChoice)
-            {
-                printf("Enter your choice: ");
-                scanf("%s", &choice);
+    }
 
-                for(int i = 1; i < strlen(choice); i++){
-                    switch (choice[i])
-                    {
-                        case 'n':
-                            printf("Link Name: %s\n", argv[1]);
-                            break;
-                        case 'd':
-                            printf("Link Size: %ld\n", sb.st_size);
-                            break;
-                        case 'l':
-                            printf("Deleting link\n");
-                            if (unlink(argv[1]) == -1) {
-                                perror("unlink");
-                                exit(EXIT_FAILURE);
-                            }
-                            printf("Link deleted\n");
-                            break;
-                        case 'a':
-                            printf("Acces rights: %o\n", sb.st_mode);//
-                            break;
-                        case 'e':
-                            printf("Exiting...\n");
-                            exit(EXIT_SUCCESS);
-                            break;
-                        default:
-                            printf("Invalid choice: \"%c\"\n", choice[i]);
-                            badChoice = 1;
-                            break;
-                    }
-                }
-            }
+    if(getFileType(argv[1]) == 3){
+        dir = dirMenu(argv[1]);
+        while(dir == -1){
+            system("clear");
+            printError("==========================\nInvalid choice, try again.\n==========================\n");
+            dir = dirMenu(argv[1]);
         }
     }
+
+    if(getFileType(argv[1]) == 0){
+        printError("Invalid file type\n");
+    }
+    
+            
     return 0;
 }
