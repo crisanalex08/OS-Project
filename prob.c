@@ -9,6 +9,10 @@
 
 struct stat sb;
 
+int wait(int *wstatus);
+
+int getFileType(char *fileName);
+
 void printRegularFileMenu(){
     printf("Regular file menu\n");
     printf("-n : File Name\n");
@@ -85,6 +89,7 @@ int validRegularChoice(char *choice){
         }
         return 1;
     }
+    return 0;
 }
 
 int validLinkChoice(char *choice){
@@ -107,6 +112,7 @@ int validLinkChoice(char *choice){
         }
         return 1;
     }
+    return 0;
 }
 
 int validDirectoryChoice(char  *choice){
@@ -127,13 +133,15 @@ int validDirectoryChoice(char  *choice){
         }
         return 1;
     }
+    return 0;
 }
 
 int regFileMenu(char *fileName){
 
-    char choice[10];
+    char choice[32];
     printRegularFileMenu();
-    scanf("%s", &choice);
+    scanf("%s", choice);
+    //printf("Child REgular File Menu\n");
     if(validRegularChoice(choice) == 0){
         printf("Invalid choice, try again\n");
         return -1;
@@ -159,7 +167,7 @@ int regFileMenu(char *fileName){
             case 'l':
                 char slinkName[100];
                 printf("Enter the symbolic link name: ");
-                scanf("%s", &slinkName);
+                scanf("%s", slinkName);
                 if (symlink(fileName, slinkName) == -1) {
                     perror("symlink");
                     exit(EXIT_FAILURE);
@@ -176,9 +184,9 @@ int regFileMenu(char *fileName){
 
 int linkMenu(char *linkName){
     
-    char choice[10];
+    char choice[32];
     printSymbolicLinkMenu();
-    scanf("%s", &choice);
+    scanf("%s", choice);
     if(validLinkChoice(choice) == 0){
         printf("Invalid choice, try again\n");
         return -1;
@@ -209,7 +217,15 @@ int linkMenu(char *linkName){
                 break;
         }
     }
+    return 0;
+}
 
+int isCFile(char *fileName){
+    char *ext = strrchr(fileName, '.');
+    if(ext != NULL && strcmp(ext, ".c") == 0){
+        return 1;
+    }
+    return 0;
 }
 
 int countCFiles(char *dirName){
@@ -260,9 +276,9 @@ int getFileType(char *fileName){
 
 int dirMenu(char *dirName){
 
-    char choice[10];
+    char choice[32];
     printDirMenu();
-    scanf("%s", &choice);
+    scanf("%s", choice);
     if(validDirectoryChoice(choice) == 0){
         return -1;
     }
@@ -292,50 +308,120 @@ int dirMenu(char *dirName){
 }
 int main(int arg, char* argv[])
 {
-    int c;
-    int regFile = 0;
     int dir = 0;
     int link = 0;
-    int badChoice = 0;
     int regMenu = 0;
-    char choice[10];
+
+    int pid;
+    int wstatus;
+
     if(arg < 2)
     {
         printf("Usage:<filename> path1, path2, ...");
         exit(EXIT_FAILURE);
     }
     
-    if(getFileType(argv[1]) == 1){
-        regMenu = regFileMenu(argv[1]);
-        while(regMenu == -1){
-            system("clear");
-            printError("==========================\nInvalid choice, try again.\n==========================\n");
-            regMenu = regFileMenu(argv[1]);
-        }
-    }
+    for(int i = 1; i < arg; i++){
+        if(getFileType(argv[i]) == 1){ //if the argument is a regular file
+            if((pid = fork()) < 0){
+                perror("fork");
+                exit(EXIT_FAILURE);
+            }
 
-    if(getFileType(argv[1]) == 2){
-        link = linkMenu(argv[1]);
-        while(link == -1){
-            system("clear");
-            printError("==========================\nInvalid choice, try again.\n==========================\n");
-            link = linkMenu(argv[1]);
+            if( pid == 0){
+                //child code
+                if(isCFile(argv[i]) == 1){
+                    if((pid = fork()) < 0){
+                        perror("fork");
+                        exit(EXIT_FAILURE);
+                    }
+                    if( pid == 0){
+                        execlp("bash", "bash", "script5.sh", argv[i]);
+                        exit(0);
+                    }
+                }else{
+                    regMenu = regFileMenu(argv[i]);
+                    printf("%s\n",argv[i]);
+                    while(regMenu == -1){
+                        system("clear");
+                        printError("==========================\nInvalid choice, try again.\n==========================\n");
+                        regMenu = regFileMenu(argv[i]);
+                    }
+                }
+                exit(0);
+                
+            }else{
+            //parent code
+            }
+            sleep(7);
         }
-    }
 
-    if(getFileType(argv[1]) == 3){
-        dir = dirMenu(argv[1]);
-        while(dir == -1){
-            system("clear");
-            printError("==========================\nInvalid choice, try again.\n==========================\n");
-            dir = dirMenu(argv[1]);
+        if(getFileType(argv[i]) == 2){//link
+            if((pid = fork()) < 0){
+                perror("fork");
+                exit(EXIT_FAILURE);
+            }
+            if(pid == 0){
+                //child code
+                link = linkMenu(argv[i]);
+                while(link == -1){
+                    system("clear");
+                    printError("==========================\nInvalid choice, try again.\n==========================\n");
+                    link = linkMenu(argv[i]);
+                }
+                exit(0);
+            }
+            sleep(7);
         }
-    }
 
-    if(getFileType(argv[1]) == 0){
-        printError("Invalid file type\n");
+        if(getFileType(argv[i]) == 3){//directory
+            if((pid = fork()) < 0){
+                perror("fork");
+                exit(EXIT_FAILURE);
+            }
+            if(pid == 0){
+                dir = dirMenu(argv[i]);
+                while(dir == -1){
+                    system("clear");
+                    printError("==========================\nInvalid choice, try again.\n==========================\n");
+                    dir = dirMenu(argv[i]);
+                }
+                exit(0);
+            }
+            sleep(7);
+        }
+
+        if(getFileType(argv[i]) == 0){
+            printError("Invalid file type\n");
+        }
+        
+        // int w = wait(&wstatus);
+        //            if (w == -1) {
+        //                perror("waitpid");
+        //                exit(EXIT_FAILURE);
+        //            }
+
+        //            if (WIFEXITED(wstatus)) {
+        //                printf("exited, status=%d\n", WEXITSTATUS(wstatus));
+        //            }
     }
-    
+    do {
+       int w = waitpid(pid, &wstatus, WUNTRACED | WCONTINUED);
+       if (w == -1) {
+           perror("waitpid");
+           exit(EXIT_FAILURE);
+       }
+       if (WIFEXITED(wstatus)) {
+           printf("exited, status=%d\n", WEXITSTATUS(wstatus));
+       } else if (WIFSIGNALED(wstatus)) {
+           printf("killed by signal %d\n", WTERMSIG(wstatus));
+       } else if (WIFSTOPPED(wstatus)) {
+           printf("stopped by signal %d\n", WSTOPSIG(wstatus));
+       } else if (WIFCONTINUED(wstatus)) {
+           printf("continued\n");
+       }
+   } while (!WIFEXITED(wstatus) && !WIFSIGNALED(wstatus));
+   exit(EXIT_SUCCESS);
             
     return 0;
 }
