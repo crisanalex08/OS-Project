@@ -46,9 +46,9 @@ void printDirMenu(){
 }
 
 void printError(char* error){
-    printf("\033[0;31m");
+    printf("\033[0;31m"); //color code for red
     printf("%s", error);
-    printf("\033[0;37m"); 
+    printf("\033[0;37m"); //color code for white
      
 }
 
@@ -89,7 +89,7 @@ int validRegularChoice(char *choice){
         }
         return 1;
     }
-    return 0;
+    return 0; //fixing warnings
 }
 
 int validLinkChoice(char *choice){
@@ -139,11 +139,12 @@ int validDirectoryChoice(char  *choice){
 int regFileMenu(char *fileName){
 
     char choice[32];
-    printRegularFileMenu();
-    scanf("%s", choice);
-    //printf("Child REgular File Menu\n");
+    printRegularFileMenu(); //print regualr file menu
+    if((scanf("%s", choice)) == 0)
+        printf("You need to enter a choice");
+
     if(validRegularChoice(choice) == 0){
-        printf("Invalid choice, try again\n");
+        printf("Invalid choice, try again\n"); //check for invalid choice
         return -1;
     }
     for(int i = 1; i < strlen(choice); i++){
@@ -167,9 +168,12 @@ int regFileMenu(char *fileName){
             case 'l':
                 char slinkName[100];
                 printf("Enter the symbolic link name: ");
-                scanf("%s", slinkName);
-                if (symlink(fileName, slinkName) == -1) {
-                    perror("symlink");
+                if((scanf("%s", slinkName)) == 0)
+                {
+                    printf("I need a link name\n");
+                }
+                if (symlink(fileName, slinkName) == -1) { //check if the link was succsefully created
+                    perror("symlink"); 
                     exit(EXIT_FAILURE);
                 }
                 break;
@@ -186,7 +190,10 @@ int linkMenu(char *linkName){
     
     char choice[32];
     printSymbolicLinkMenu();
-    scanf("%s", choice);
+    if((scanf("%s", choice)) == 0)
+    {
+        printf("I need a choice\n");
+    }
     if(validLinkChoice(choice) == 0){
         printf("Invalid choice, try again\n");
         return -1;
@@ -202,7 +209,7 @@ int linkMenu(char *linkName){
                 break;
             case 'l':
                 printf("Deleting link\n");
-                if (unlink(linkName) == -1) {
+                if (unlink(linkName) == -1) { // check if the link was deleted succecfully
                     perror("unlink");
                     exit(EXIT_FAILURE);
                 }
@@ -222,7 +229,7 @@ int linkMenu(char *linkName){
 
 int isCFile(char *fileName){
     char *ext = strrchr(fileName, '.');
-    if(ext != NULL && strcmp(ext, ".c") == 0){
+    if(ext != NULL && strcmp(ext, ".c") == 0){ // if file name contains
         return 1;
     }
     return 0;
@@ -278,7 +285,10 @@ int dirMenu(char *dirName){
 
     char choice[32];
     printDirMenu();
-    scanf("%s", choice);
+    if((scanf("%s", choice)) == 0)
+    {
+        printf("I need a choice\n");
+    }
     if(validDirectoryChoice(choice) == 0){
         return -1;
     }
@@ -311,6 +321,8 @@ int main(int arg, char* argv[])
     int dir = 0;
     int link = 0;
     int regMenu = 0;
+    int pfd[2];
+    char buff[256];
 
     int pid;
     int wstatus;
@@ -331,19 +343,40 @@ int main(int arg, char* argv[])
             if( pid == 0){
                 //child code
                 if(isCFile(argv[i]) == 1){
+
+                    if((pipe(pfd) < 0)){
+                        printf("The pipe was created");
+                        exit(1);
+                    }
+
                     if((pid = fork()) < 0){
                         perror("fork");
                         exit(EXIT_FAILURE);
                     }
                     if( pid == 0){
-                        execlp("bash", "bash", "script5.sh", argv[i]);
+                        close(pfd[0]);
+
+                        int newfd = dup2(pfd[1],1); //1 - stdout
+
+                        if(newfd < 0){
+                            printf("Error while dup2-ing");
+                            exit(1);
+                        }
+
+                        execlp("bash", "bash", "script5.sh", argv[i], (char *)0);
+
+
                         exit(0);
                     }
                 }else{
                     regMenu = regFileMenu(argv[i]);
                     printf("%s\n",argv[i]);
                     while(regMenu == -1){
-                        system("clear");
+                        if((system("clear") == -1))
+                        {
+                            printf("The clearing failed\n");
+                            exit(0);
+                        }
                         printError("==========================\nInvalid choice, try again.\n==========================\n");
                         regMenu = regFileMenu(argv[i]);
                     }
@@ -352,6 +385,16 @@ int main(int arg, char* argv[])
                 
             }else{
             //parent code
+
+            close(pfd[1]);
+
+            if((read(pfd[0],  buff, 10)) <= 0);{
+                printf("The parent did not read from the pipe");
+            }
+            close(pfd[0]);
+
+            printf("Buff: %s\n", buff);
+
             }
             sleep(7);
         }
@@ -365,7 +408,11 @@ int main(int arg, char* argv[])
                 //child code
                 link = linkMenu(argv[i]);
                 while(link == -1){
-                    system("clear");
+                    if((system("clear") == -1))
+                        {
+                            printf("The clearing failed\n");
+                            exit(0);
+                        }
                     printError("==========================\nInvalid choice, try again.\n==========================\n");
                     link = linkMenu(argv[i]);
                 }
@@ -382,7 +429,11 @@ int main(int arg, char* argv[])
             if(pid == 0){
                 dir = dirMenu(argv[i]);
                 while(dir == -1){
-                    system("clear");
+                    if((system("clear") == -1))
+                    {
+                            printf("The clearing failed\n");
+                            exit(0);
+                    }
                     printError("==========================\nInvalid choice, try again.\n==========================\n");
                     dir = dirMenu(argv[i]);
                 }
@@ -406,7 +457,7 @@ int main(int arg, char* argv[])
         //            }
     }
     do {
-       int w = waitpid(pid, &wstatus, WUNTRACED | WCONTINUED);
+       int w = wait(&wstatus);
        if (w == -1) {
            perror("waitpid");
            exit(EXIT_FAILURE);

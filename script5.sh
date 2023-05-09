@@ -30,5 +30,4 @@ do
         warningCount=`expr $warningCount + 1`
     fi
 done
-echo "Nr of errors in $1: $errorCount"
-echo "Nr of warnings in $1: $warningCount"
+echo "$errorCount $warningCount"
