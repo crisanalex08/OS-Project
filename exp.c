@@ -447,6 +447,17 @@ void handleMenu(char* fileName){
                 case 2:
                     execlp("chmod", "chmod", "760", fileName, (char *)0);
                     break;
+                case 3:
+                    char dirName[4096];
+                            char dirPath[4096];
+                            strcpy(dirName, fileName);
+                            strcpy(dirPath, fileName);
+                            strcat(dirName, "/");
+                            strcat(dirPath, "_file.txt");
+                            strcat(dirName, dirPath);
+                            execlp("touch", "touch", dirName, (char *)0);
+                            exit(0);
+                    break;
             }
             exit(EXIT_SUCCESS);
         }
