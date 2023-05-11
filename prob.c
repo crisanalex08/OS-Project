@@ -342,33 +342,6 @@ int main(int arg, char* argv[])
 
             if( pid == 0){
                 //child code
-                if(isCFile(argv[i]) == 1){
-
-                    if((pipe(pfd) < 0)){
-                        printf("The pipe was created");
-                        exit(1);
-                    }
-
-                    if((pid = fork()) < 0){
-                        perror("fork");
-                        exit(EXIT_FAILURE);
-                    }
-                    if( pid == 0){
-                        close(pfd[0]);
-
-                        int newfd = dup2(pfd[1],1); //1 - stdout
-
-                        if(newfd < 0){
-                            printf("Error while dup2-ing");
-                            exit(1);
-                        }
-
-                        execlp("bash", "bash", "script5.sh", argv[i], (char *)0);
-
-
-                        exit(0);
-                    }
-                }else{
                     regMenu = regFileMenu(argv[i]);
                     printf("%s\n",argv[i]);
                     while(regMenu == -1){
@@ -380,23 +353,53 @@ int main(int arg, char* argv[])
                         printError("==========================\nInvalid choice, try again.\n==========================\n");
                         regMenu = regFileMenu(argv[i]);
                     }
-                }
                 exit(0);
-                
-            }else{
+            }
+            else{
             //parent code
+                sleep(7);
+                if(isCFile(argv[i]) == 1){
+                    if((pipe(pfd) < 0)){
+                        printf("The pipe was created");
+                        exit(1);
+                    }
 
-            close(pfd[1]);
+                    if((pid = fork()) < 0){
+                        perror("fork");
+                        exit(EXIT_FAILURE);
+                    }
 
-            if((read(pfd[0],  buff, 10)) <= 0);{
-                printf("The parent did not read from the pipe");
-            }
-            close(pfd[0]);
+                    if( pid == 0){
+                        //second child code
+                        close(pfd[0]);
 
-            printf("Buff: %s\n", buff);
+                        int newfd = dup2(pfd[1],1); //1 - stdout
 
-            }
-            sleep(7);
+                        if(newfd < 0){
+                            printf("Error while dup2-ing");
+                            exit(1);
+                        }
+
+                        execlp("bash", "bash", "script5.sh", argv[i], (char *)0);
+
+                        exit(0);
+                    }
+                }
+            
+                if((close(pfd[1])) != 0){
+                    printf("The pipe was closed\n");
+                }
+
+                while((read(pfd[0], buff, 1)) > 0){
+                    printf("Buff: %s\n", buff);
+                }
+
+
+                close(pfd[0]);
+
+                printf("Buff: %s\n", buff);
+
+                }
         }
 
         if(getFileType(argv[i]) == 2){//link
