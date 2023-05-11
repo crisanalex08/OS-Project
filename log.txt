@@ -1,0 +1,11 @@
+file.c: In function ‘main’:
+file.c:4:24: warning: format ‘%s’ expects argument of type ‘char *’, but argument 2 has type ‘int’ [-Wformat=]
+    4 |     printf("Hello Worl%sd!\n", 1);
+      |                       ~^       ~
+      |                        |       |
+      |                        char *  int
+      |                       %d
+file.c: At top level:
+file.c:7:1: error: expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ at end of input
+    7 | }a
+      | ^

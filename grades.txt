@@ -1,2 +1,8 @@
-file.c: 10
-file.c: 10
+file.c: 9
+file.c: 9
+file.c: 9
+file.c: 9
+file.c: 9
+file.c: 1
+file.c: 1
+file.c: 1

@@ -260,6 +260,7 @@ int isCFile(char *fileName){
 }
 
 int countCFiles(char *dirName){
+    printf("Dir name: %s\n", dirName);
     DIR *dir;
     struct dirent *ent;
     char path[4096];
@@ -270,7 +271,7 @@ int countCFiles(char *dirName){
         while ((ent = readdir (dir)) != NULL) {
             if(strlen(ent->d_name) > 2){
                 strcat(path, ent->d_name);
-                if(getFileType(path) == 1){
+                if(isCFile(path) == 1){
                     char *ext = strrchr(ent->d_name, '.');
                     if(ext != NULL && strcmp(ext, ".c") == 0){
                         count++;
@@ -383,8 +384,26 @@ void printScore(char* filename, int errorNumber, int warningNumber){
     }
 }
 
-void handleMenu(char *fileName){
+void processCFile(char* fileName, int pfd[2]){
+    
+}
+
+void handleMenu(char* fileName){
+    pid_t pid, pid2;
+    int pfd[2];
     int fileType = getFileType(fileName);
+
+    if((pipe(pfd) == -1)){
+        perror("pipe");
+        exit(EXIT_FAILURE);
+    }
+
+    if((pid = fork()) == 0){
+        if(pid == -1){
+            perror("fork");
+            exit(EXIT_FAILURE);
+        }
+        //child process
         switch (fileType)
         {
             case 1:
@@ -401,17 +420,75 @@ void handleMenu(char *fileName){
                 break;
         }
         exit(EXIT_SUCCESS);
+    }
+    else
+    {
+        if((pid2 = fork()) == 0){
+            if(pid2 == -1){
+                perror("fork");
+                exit(EXIT_FAILURE);
+            }
+            //second child process
+            switch (fileType)
+            {
+                case 1:
+                    close(pfd[0]);
+                    int newfd = dup2(pfd[1],STDOUT_FILENO); //1 - stdout
+                    if(newfd < 0){
+                        perror("Error while dup2-ing");
+                        exit(1);
+                    }
+                    close(pfd[1]);
+                    if( execlp("bash", "bash", "script5.sh", fileName, (char *)0) == -1){
+                        perror("execlp");
+                        exit(EXIT_FAILURE);
+                    }
+                    break;
+                case 2:
+                    execlp("chmod", "chmod", "760", fileName, (char *)0);
+                    break;
+            }
+            exit(EXIT_SUCCESS);
+        }
+        else{
+            //parent process
+            if(pid2 == -1){
+                perror("fork");
+                exit(EXIT_FAILURE);
+            }
+
+            if (fileType == 1){
+                if((close(pfd[1])) == -1){
+                    perror("close");
+                    exit(EXIT_FAILURE);
+                }
+                int switchToWarning = 0;
+                int errorNumber = 0, warningNumber = 0;
+                char buff[1];
+
+                while((read(pfd[0], buff, 1)) > 0){
+                    buff[1]='\0';
+                    if(buff[0] != ' ' && switchToWarning == 0){
+                        errorNumber = errorNumber * 10 + (buff[0] - '0');
+                    }
+                    if(buff[0] == ' '){
+                        switchToWarning = 1;
+                        continue;
+                    }
+                    if(buff[0] != ' ' && switchToWarning == 1){
+                        if(buff[0] <= '9' && buff[0] >= '0'){
+                            warningNumber = warningNumber * 10 + (buff[0] - '0');
+                        }
+                    }
+                }
+                printScore(fileName ,errorNumber, warningNumber);
+            }
+        }
+    }
 }
 
 int main(int arg, char* argv[])
 {
-    int dir = 0;
-    int link = 0;
-    int regMenu = 0;
-    int pfd[2];
-    char buff[256];
-
-    int pid;
     int wstatus;
 
     if(arg < 2)
@@ -422,24 +499,25 @@ int main(int arg, char* argv[])
     
     for(int i = 1; i < arg; i++){
         handleMenu(argv[i]);
+        sleep(7);
     }
-//     do {
-//        int w = wait(&wstatus);
-//        if (w == -1) {
-//            perror("waitpid");
-//            exit(EXIT_FAILURE);
-//        }
-//        if (WIFEXITED(wstatus)) {
-//            printf("exited, status=%d\n", WEXITSTATUS(wstatus));
-//        } else if (WIFSIGNALED(wstatus)) {
-//            printf("killed by signal %d\n", WTERMSIG(wstatus));
-//        } else if (WIFSTOPPED(wstatus)) {
-//            printf("stopped by signal %d\n", WSTOPSIG(wstatus));
-//        } else if (WIFCONTINUED(wstatus)) {
-//            printf("continued\n");
-//        }
-//    } while (!WIFEXITED(wstatus) && !WIFSIGNALED(wstatus));
-//    exit(EXIT_SUCCESS);
-            
+
+    do {
+            int w = wait(&wstatus);
+            if (w == -1) {
+                perror("waitpid");
+                exit(EXIT_FAILURE);
+            }
+            if (WIFEXITED(wstatus)) {
+                printf("exited, status=%d\n", WEXITSTATUS(wstatus));
+            } else if (WIFSIGNALED(wstatus)) {
+                printf("killed by signal %d\n", WTERMSIG(wstatus));
+            } else if (WIFSTOPPED(wstatus)) {
+                printf("stopped by signal %d\n", WSTOPSIG(wstatus));
+            } else if (WIFCONTINUED(wstatus)) {
+                printf("continued\n");
+            }
+        } while (!WIFEXITED(wstatus) && !WIFSIGNALED(wstatus));
+   exit(EXIT_SUCCESS);
     return 0;
 }
