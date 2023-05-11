@@ -13,6 +13,8 @@ int wait(int *wstatus);
 
 int getFileType(char *fileName);
 
+FILE *gradefile;
+
 void printRegularFileMenu(){
     printf("Regular file menu\n");
     printf("-n : File Name\n");
@@ -139,7 +141,8 @@ int validDirectoryChoice(char  *choice){
 int regFileMenu(char *fileName){
 
     char choice[32];
-    printRegularFileMenu(); //print regualr file menu
+    printRegularFileMenu(); //print regular file menu
+    // sleep(7);
     if((scanf("%s", choice)) == 0)
         printf("You need to enter a choice");
 
@@ -314,8 +317,45 @@ int dirMenu(char *dirName){
         }
     }
     return 0;
-
 }
+
+void printScore(char* filename, int errorNumber, int warningNumber){
+    int score = 0;
+    if(errorNumber == 0 && warningNumber == 0){
+        score = 10;
+    }
+
+    if(errorNumber >= 1){
+        score  = 1;
+    }
+
+    if(errorNumber == 0 && warningNumber >= 10){
+        score = 2;
+    }
+
+    if(errorNumber == 0 && warningNumber >= 1 && warningNumber <= 9){
+        score = 2 + 8 * (10 - warningNumber) / 10;
+    }
+
+    if(score){
+        if((gradefile = fopen("grades.txt", "a+")) == NULL){
+            printf("The file could not be opened\n");
+            exit(EXIT_FAILURE);
+        }else{
+            fprintf(gradefile, "%s: %d\n", filename, score);
+
+            if((fclose(gradefile)) == EOF){
+                printf("The file could not be closed\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+    else{
+        printf("The score could not be computed\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
 int main(int arg, char* argv[])
 {
     int dir = 0;
@@ -353,24 +393,24 @@ int main(int arg, char* argv[])
                         printError("==========================\nInvalid choice, try again.\n==========================\n");
                         regMenu = regFileMenu(argv[i]);
                     }
+
                 exit(0);
             }
             else{
             //parent code
-                sleep(7);
-                if(isCFile(argv[i]) == 1){
-                    if((pipe(pfd) < 0)){
-                        printf("The pipe was created");
-                        exit(1);
-                    }
+                if((pipe(pfd) < 0)){
+                    printf("The pipe was created");
+                    exit(1);
+                }
 
-                    if((pid = fork()) < 0){
-                        perror("fork");
-                        exit(EXIT_FAILURE);
-                    }
+                if((pid = fork()) < 0){
+                    perror("fork");
+                    exit(EXIT_FAILURE);
+                }
 
-                    if( pid == 0){
-                        //second child code
+                if( pid == 0){
+                    //second child code
+                    if(isCFile(argv[i]) == 1){
                         close(pfd[0]);
 
                         int newfd = dup2(pfd[1],1); //1 - stdout
@@ -381,25 +421,36 @@ int main(int arg, char* argv[])
                         }
 
                         execlp("bash", "bash", "script5.sh", argv[i], (char *)0);
-
-                        exit(0);
+                        int index = 0; //used to skip the blank space
+                        //this could be done with a single read, reading 3 bytes at once, but I wanted to use a while loop to read byte by byte
+                        int errorNumber = 0, warningNumber = 0;
+                        while((read(pfd[0], buff, 1)) > 0){
+                            if(index % 2 == 0){
+                                if(index == 0){
+                                    errorNumber = buff[0] - '0';
+                                }
+                                else{
+                                    warningNumber = buff[0] - '0';
+                                }
+                            }
+                            index++;
+                        }
+                
+                        printScore(argv[1] ,errorNumber, warningNumber);
                     }
+                    else{
+                        execlp("wc", "wc", "-l", argv[i], (char *)0);
+                    }
+
+                    exit(0);
                 }
             
                 if((close(pfd[1])) != 0){
                     printf("The pipe was closed\n");
                 }
-
-                while((read(pfd[0], buff, 1)) > 0){
-                    printf("Buff: %s\n", buff);
-                }
-
-
                 close(pfd[0]);
-
-                printf("Buff: %s\n", buff);
-
-                }
+                sleep(7);
+            }
         }
 
         if(getFileType(argv[i]) == 2){//link
@@ -442,7 +493,29 @@ int main(int arg, char* argv[])
                 }
                 exit(0);
             }
-            sleep(7);
+            else
+            {
+                //parent code
+                if((pid = fork()) < 0){
+                    perror("fork");
+                    exit(EXIT_FAILURE);
+                }
+                else{
+                    if( pid == 0){
+                        //second child code
+                        char dirName[4096];
+                        char dirPath[4096];
+                        strcpy(dirName, argv[i]);
+                        strcpy(dirPath, argv[i]);
+                        strcat(dirName, "/");
+                        strcat(dirPath, "_file.txt");
+                        strcat(dirName, dirPath);
+                        execlp("touch", "touch", dirName, (char *)0);
+                        exit(0);
+                    }
+                }
+                sleep(7);
+            }
         }
 
         if(getFileType(argv[i]) == 0){
