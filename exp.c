@@ -55,18 +55,18 @@ void printError(char* error){
 
 void accesRights(struct stat sb){
     printf("Access rights: ");
-    printf( (S_ISDIR(sb.st_mode)) ? "d" : "-");
+    printf( (S_ISDIR(sb.st_mode)) ? "d" : "-"); //check if it is a directory
     printf(" User: \n");
     printf("\n");
-    printf( (sb.st_mode & S_IRUSR) ? "Read - yes\n" : "Read - no\n");
-    printf( (sb.st_mode & S_IWUSR) ? "Write - yes\n" : "Write - no\n");
-    printf( (sb.st_mode & S_IXUSR) ? "Exec - yes\n" : "Write - no\n");
+    printf( (sb.st_mode & S_IRUSR) ? "Read - yes\n" : "Read - no\n"); //check if the user has read rights
+    printf( (sb.st_mode & S_IWUSR) ? "Write - yes\n" : "Write - no\n"); //check if the user has write rights
+    printf( (sb.st_mode & S_IXUSR) ? "Exec - yes\n" : "Write - no\n"); //check if the user has exec rights
     
     printf("\n");
     printf(" Group: \n");
     printf("\n");
     
-    printf( (sb.st_mode & S_IRGRP) ? "Read - yes\n" : "Read - no\n");
+    printf( (sb.st_mode & S_IRGRP) ? "Read - yes\n" : "Read - no\n");//same for group
     printf( (sb.st_mode & S_IWGRP) ? "Write - yes\n" : "Write - no\n");
     printf( (sb.st_mode & S_IXGRP) ? "Exec - yes\n" : "Exec - no\n");
 
@@ -74,14 +74,14 @@ void accesRights(struct stat sb){
     printf(" Other: \n");
     printf("\n");
 
-    printf( (sb.st_mode & S_IROTH) ? "Read - yes\n" : "Read - no\n");
+    printf( (sb.st_mode & S_IROTH) ? "Read - yes\n" : "Read - no\n");//same for other
     printf( (sb.st_mode & S_IWOTH) ? "Write - yes\n" : "Write - no\n");
     printf( (sb.st_mode & S_IXOTH) ? "Exec - yes\n" : "Exec - no\n");
     printf("\n");
 }
 
 int validRegularChoice(char *choice){
-    for(int i = 1; i < strlen(choice); i++){
+    for(int i = 1; i < strlen(choice); i++){ //check if the choice is valid
         switch(choice[i]){
             case 'n':
                 break;
@@ -157,13 +157,13 @@ int regFileMenu(char *fileName){
     if((scanf("%s", choice)) == 0)
         printf("You need to enter a choice");
 
-    while(validRegularChoice(choice) == 0){
-        if(system("clear") == -1){
-            printf("Clear failed\n");
+    while(validRegularChoice(choice) == 0){ //check if the choice is valid
+        if(system("clear") == -1){ //clear the screen
+            printf("Clear failed\n"); 
         }
-        printError("Invalid choice, try again\n");
+        printError("Invalid choice, try again\n"); 
         printRegularFileMenu();
-        if((scanf("%s", choice)) == 0)
+        if((scanf("%s", choice)) == 0) //read the choice
             printf("You need to enter a choice");
     }
     for(int i = 1; i < strlen(choice); i++){
@@ -267,38 +267,35 @@ int countCFiles(char *dirName){
     strcpy(path, dirName);
     strcat(path, "/");
     int count = 0;
-    if ((dir = opendir (dirName)) != NULL) {
-        while ((ent = readdir (dir)) != NULL) {
-            if(strlen(ent->d_name) > 2){
-                strcat(path, ent->d_name);
-                if(isCFile(path) == 1){
-                    char *ext = strrchr(ent->d_name, '.');
-                    if(ext != NULL && strcmp(ext, ".c") == 0){
-                        count++;
-                    }
+    if ((dir = opendir (dirName)) != NULL) { //check if the directory was opened
+        while ((ent = readdir (dir)) != NULL) { //read the directory
+            if(strlen(ent->d_name) > 2){ //check if the file name is valid
+                strcat(path, ent->d_name); //create the path
+                if(isCFile(path) == 1){ //check if the file is a .c file
+                    count++;
                 }
             }
         }
         closedir (dir);
     } else {
-        perror ("");
+        perror ("opendir"); //if the directory could not be opened
         return EXIT_FAILURE;
     }
     return count;
 }
 
 int getFileType(char *fileName){
-    if (lstat(fileName, &sb) == -1) {
-        perror("lstat");
+    if (lstat(fileName, &sb) == -1) { 
+        perror("lstat");  
         exit(EXIT_FAILURE);
     }
-    if(S_ISREG(sb.st_mode)){
+    if(S_ISREG(sb.st_mode)){ //check if the file is a regular file
         return 1;
     }
-    else if(S_ISLNK(sb.st_mode)){
+    else if(S_ISLNK(sb.st_mode)){ //check if the file is a symbolic link
         return 2;
     }
-    else if(S_ISDIR(sb.st_mode)){
+    else if(S_ISDIR(sb.st_mode)){ //check if the file is a directory
         return 3;
     }
     else{
@@ -349,7 +346,7 @@ int dirMenu(char *dirName){
 
 void printScore(char* filename, int errorNumber, int warningNumber){
     int score = 0;
-    if(errorNumber == 0 && warningNumber == 0){
+    if(errorNumber == 0 && warningNumber == 0){ 
         score = 10;
     }
 
@@ -366,7 +363,7 @@ void printScore(char* filename, int errorNumber, int warningNumber){
     }
 
     if(score){
-        if((gradefile = fopen("grades.txt", "a+")) == NULL){
+        if((gradefile = fopen("grades.txt", "a+")) == NULL){ 
             printf("The file could not be opened\n");
             exit(EXIT_FAILURE);
         }else{
@@ -379,13 +376,9 @@ void printScore(char* filename, int errorNumber, int warningNumber){
         }
     }
     else{
-        printf("The score could not be computed\n");
+        printf("The score could not be computed\n"); 
         exit(EXIT_FAILURE);
     }
-}
-
-void processCFile(char* fileName, int pfd[2]){
-    
 }
 
 void handleMenu(char* fileName){
@@ -393,12 +386,12 @@ void handleMenu(char* fileName){
     int pfd[2];
     int fileType = getFileType(fileName);
 
-    if((pipe(pfd) == -1)){
+    if((pipe(pfd) == -1)){ //create a pipe
         perror("pipe");
         exit(EXIT_FAILURE);
     }
 
-    if((pid = fork()) == 0){
+    if((pid = fork()) == 0){ //create a child process
         if(pid == -1){
             perror("fork");
             exit(EXIT_FAILURE);
@@ -407,7 +400,7 @@ void handleMenu(char* fileName){
         switch (fileType)
         {
             case 1:
-                regFileMenu(fileName);
+                regFileMenu(fileName); 
                 break;
             case 2:
                 linkMenu(fileName);
@@ -423,7 +416,7 @@ void handleMenu(char* fileName){
     }
     else
     {
-        if((pid2 = fork()) == 0){
+        if((pid2 = fork()) == 0){ //create a second child process
             if(pid2 == -1){
                 perror("fork");
                 exit(EXIT_FAILURE);
@@ -432,30 +425,36 @@ void handleMenu(char* fileName){
             switch (fileType)
             {
                 case 1:
-                    close(pfd[0]);
+                    close(pfd[0]); //close the read end of the pipe
                     int newfd = dup2(pfd[1],STDOUT_FILENO); //1 - stdout
-                    if(newfd < 0){
+                    if(newfd < 0){ //check if the dup2 call was succsefull
                         perror("Error while dup2-ing");
                         exit(1);
                     }
-                    close(pfd[1]);
+                    close(pfd[1]); //close the write end of the pipe
                     if( execlp("bash", "bash", "script5.sh", fileName, (char *)0) == -1){
                         perror("execlp");
                         exit(EXIT_FAILURE);
                     }
                     break;
                 case 2:
-                    execlp("chmod", "chmod", "760", fileName, (char *)0);
+                    if((execlp("chmod", "chmod", "760", fileName, (char *)0)) == -1){
+                        perror("execlp");
+                        exit(EXIT_FAILURE);
+                    }  //change the access rights of the pointed file
                     break;
                 case 3:
                     char dirName[4096];
                             char dirPath[4096];
-                            strcpy(dirName, fileName);
-                            strcpy(dirPath, fileName);
-                            strcat(dirName, "/");
-                            strcat(dirPath, "_file.txt");
+                            strcpy(dirName, fileName); //create the directory name
+                            strcpy(dirPath, fileName); //create the directory path 
+                            strcat(dirName, "/"); 
+                            strcat(dirPath, "_file.txt"); 
                             strcat(dirName, dirPath);
-                            execlp("touch", "touch", dirName, (char *)0);
+                            if((execlp("touch", "touch", dirName, (char *)0)) == -1){
+                                perror("execlp");
+                                exit(EXIT_FAILURE);
+                            } //create the file
                             exit(0);
                     break;
             }
@@ -463,12 +462,12 @@ void handleMenu(char* fileName){
         }
         else{
             //parent process
-            if(pid2 == -1){
-                perror("fork");
-                exit(EXIT_FAILURE);
+            if(pid2 == -1){ //check if the fork call was succsefull
+                perror("fork"); 
+                exit(EXIT_FAILURE); 
             }
 
-            if (fileType == 1){
+            if (fileType == 1){ //check if the file is a regular file
                 if((close(pfd[1])) == -1){
                     perror("close");
                     exit(EXIT_FAILURE);
@@ -479,15 +478,15 @@ void handleMenu(char* fileName){
 
                 while((read(pfd[0], buff, 1)) > 0){
                     buff[1]='\0';
-                    if(buff[0] != ' ' && switchToWarning == 0){
-                        errorNumber = errorNumber * 10 + (buff[0] - '0');
-                    }
+                    if(buff[0] != ' ' && switchToWarning == 0){ 
+                        errorNumber = errorNumber * 10 + (buff[0] - '0'); //compute the error number
+                    } 
                     if(buff[0] == ' '){
-                        switchToWarning = 1;
+                        switchToWarning = 1; //switch to warning number
                         continue;
                     }
                     if(buff[0] != ' ' && switchToWarning == 1){
-                        if(buff[0] <= '9' && buff[0] >= '0'){
+                        if(buff[0] <= '9' && buff[0] >= '0'){ //compute the warning number
                             warningNumber = warningNumber * 10 + (buff[0] - '0');
                         }
                     }
@@ -500,7 +499,7 @@ void handleMenu(char* fileName){
 
 int main(int arg, char* argv[])
 {
-    int wstatus;
+    int wstatus; 
 
     if(arg < 2)
     {
@@ -509,7 +508,7 @@ int main(int arg, char* argv[])
     }
     
     for(int i = 1; i < arg; i++){
-        handleMenu(argv[i]);
+        handleMenu(argv[i]); //handle the menu
         sleep(7);
     }
 
@@ -520,11 +519,11 @@ int main(int arg, char* argv[])
                 exit(EXIT_FAILURE);
             }
             if (WIFEXITED(wstatus)) {
-                printf("exited, status=%d\n", WEXITSTATUS(wstatus));
+                printf("Child process %d exited with status %d\n", w, WEXITSTATUS(wstatus));
             } else if (WIFSIGNALED(wstatus)) {
-                printf("killed by signal %d\n", WTERMSIG(wstatus));
+                printf("Child process %d killed by signal %d\n", w, WTERMSIG(wstatus));
             } else if (WIFSTOPPED(wstatus)) {
-                printf("stopped by signal %d\n", WSTOPSIG(wstatus));
+                printf("Child process %d stopped by signal %d\n", w, WSTOPSIG(wstatus));
             } else if (WIFCONTINUED(wstatus)) {
                 printf("continued\n");
             }

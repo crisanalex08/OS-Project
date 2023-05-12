@@ -6,3 +6,6 @@ file.c: 9
 file.c: 1
 file.c: 1
 file.c: 1
+file1.txt: 1
+file.c: 1
+file.c: 9

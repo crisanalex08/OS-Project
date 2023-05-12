@@ -5,7 +5,3 @@ file.c:4:24: warning: format ‘%s’ expects argument of type ‘char *’, but
       |                        |       |
       |                        char *  int
       |                       %d
-file.c: At top level:
-file.c:7:1: error: expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ at end of input
-    7 | }a
-      | ^
